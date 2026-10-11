@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  body { font: 16px sans-serif; padding: 24px; }
+  button, .creator-tab, .template-card { display: inline-block; padding: 12px; margin: 4px; cursor: pointer; }
+  [contenteditable] { border: 1px solid #aaa; min-height: 80px; max-height: 220px; overflow: auto; white-space: pre-wrap; }
+  .selected { background: #fcc; }
+  [hidden] { display: none !important; }
+</style>
+<body data-scenario="{{SCENARIO}}">
+<div class="creator-tab" onclick="this.hidden=true; document.querySelector('#new').hidden=false">写长文</div>
+<button id="new" hidden onclick="this.hidden=true; document.querySelector('#article').hidden=false">新的创作</button>
+<section id="article" hidden>
+  <textarea class="d-text" placeholder="输入标题">旧标题</textarea>
+  <div id="body" class="tiptap ProseMirror" contenteditable="true">旧正文</div>
+  <input type="file" accept="image/png" multiple hidden>
+  <button id="layout">一键排版</button>
+  <div id="templates"></div>
+  <button id="next" hidden>下一步</button>
+</section>
+<section id="posting" hidden>
+  <div id="description" class="tiptap ProseMirror" contenteditable="true">预填简介</div>
+  <div class="publish-page-publish-btn"><button id="publish" class="bg-red">发布</button></div>
+</section>
+<script>
+const scenario = document.body.dataset.scenario;
+const article = document.querySelector('#article');
+const editor = document.querySelector('#body');
+const title = document.querySelector('textarea');
+const next = document.querySelector('#next');
+window.submitted = null;
+window.uploaded = 0;
+if (scenario === 'truncated-title') title.maxLength = 2;
+document.querySelector('#layout').onclick = () => {
+  setTimeout(() => {
+    const card = document.createElement('div');
+    card.className = 'template-card';
+    card.innerHTML = '<span class="template-title">' + (scenario === 'missing-template' ? '其他模板' : '简约') + '</span>';
+    card.onclick = () => setTimeout(() => {
+      if (scenario !== 'selection-fails') card.classList.add('selected');
+    }, 200);
+    document.querySelector('#templates').append(card);
+    next.hidden = false;
+  }, 200);
+};
+next.onclick = () => {
+  if (scenario === 'no-transition') return;
+  if (!document.querySelector('.template-card.selected')) throw new Error('模板尚未选中');
+  setTimeout(() => {
+    article.hidden = true;
+    document.querySelector('#posting').hidden = false;
+  }, 400);
+};
+document.querySelector('input[type=file]').onchange = event => {
+  for (const file of event.target.files) {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    editor.append(img);
+    if (scenario !== 'upload-stalls') setTimeout(() => {
+      img.src = 'https://fixture.invalid/uploaded.svg';
+      window.uploaded++;
+    }, 250);
+  }
+};
+document.querySelector('#publish').onclick = () => {
+  window.submitted = {
+    title: title.value,
+    content: editor.innerText,
+    description: document.querySelector('#description').innerText,
+    template: document.querySelector('.template-card.selected .template-title').innerText,
+    images: window.uploaded
+  };
+  if (scenario === 'login') {
+    history.pushState({}, '', '/login');
+    document.body.insertAdjacentHTML('beforeend', '<div class="publish-success">发布成功</div>');
+  } else {
+    history.pushState({}, '', '/publish/success');
+  }
+};
+</script>
+</body>

@@ -188,6 +188,48 @@ func (s *AppServer) handlePublishContent(ctx context.Context, args map[string]in
 	}
 }
 
+// handlePublishLongArticle 处理长文发布。
+func (s *AppServer) handlePublishLongArticle(ctx context.Context, args map[string]interface{}) *MCPToolResult {
+	req := &PublishLongArticleRequest{
+		Title:       stringArg(args, "title"),
+		Content:     stringArg(args, "content"),
+		Template:    stringArg(args, "template"),
+		Description: stringArg(args, "description"),
+		Images:      stringSliceArg(args, "images"),
+		ScheduleAt:  stringArg(args, "schedule_at"),
+		Visibility:  parseVisibility(args),
+		Products:    stringSliceArg(args, "products"),
+	}
+
+	result, err := s.xiaohongshuService.PublishLongArticle(ctx, req)
+	if err != nil {
+		return &MCPToolResult{
+			Content: []MCPContent{{Type: "text", Text: "长文发布失败: " + err.Error()}},
+			IsError: true,
+		}
+	}
+
+	return &MCPToolResult{
+		Content: []MCPContent{{Type: "text", Text: fmt.Sprintf("长文发布成功: %+v", result)}},
+	}
+}
+
+func stringArg(args map[string]interface{}, key string) string {
+	value, _ := args[key].(string)
+	return value
+}
+
+func stringSliceArg(args map[string]interface{}, key string) []string {
+	values, _ := args[key].([]interface{})
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value, ok := value.(string); ok {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
 // handlePublishVideo 处理发布视频内容（仅本地单个视频文件）
 func (s *AppServer) handlePublishVideo(ctx context.Context, args map[string]interface{}) *MCPToolResult {
 	logrus.Info("MCP: 发布视频内容（本地）")

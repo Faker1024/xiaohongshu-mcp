@@ -27,6 +27,18 @@ type PublishContentArgs struct {
 	Products   []string `json:"products,omitempty" jsonschema:"商品关键词列表（可选），用于绑定带货商品。填写商品名称或商品ID，系统会自动搜索并选择第一个匹配结果。需账号已开通商品功能。示例: [面膜, 防晒霜SPF50]"`
 }
 
+// PublishLongArticleArgs 写长文参数。
+type PublishLongArticleArgs struct {
+	Title       string   `json:"title" jsonschema:"长文标题，遵循创作者中心当前页面限制"`
+	Content     string   `json:"content" jsonschema:"长文正文内容，支持多段文本"`
+	Template    string   `json:"template" jsonschema:"排版模板名称，需从小红书长文页面可用模板中选择"`
+	Description string   `json:"description,omitempty" jsonschema:"发布页正文描述，可选；正文超过1000字时必须提供，最多1000字"`
+	Images      []string `json:"images,omitempty" jsonschema:"可选图片路径列表，支持HTTP/HTTPS链接或本地路径"`
+	ScheduleAt  string   `json:"schedule_at,omitempty" jsonschema:"定时发布时间，ISO8601格式，支持1小时至14天内"`
+	Visibility  string   `json:"visibility,omitempty" jsonschema:"可见范围，可选公开可见、仅自己可见、仅互关好友可见"`
+	Products    []string `json:"products,omitempty" jsonschema:"可选商品关键词列表"`
+}
+
 // PublishVideoArgs 发布视频的参数（仅支持本地单个视频文件）
 type PublishVideoArgs struct {
 	Title      string   `json:"title" jsonschema:"内容标题（小红书限制：最多20个中文字或英文单词）"`
@@ -252,7 +264,33 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 5: 获取Feed列表
+	// 工具 5: 发布长文
+	mcp.AddTool(server,
+		&mcp.Tool{
+			Name:        "publish_long_article",
+			Description: "发布小红书长文内容，自动填写正文、选择排版模板并发布。调用前应先向用户确认最终内容和模板。",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Publish Long Article",
+				DestructiveHint: boolPtr(true),
+			},
+		},
+		withPanicRecovery("publish_long_article", func(ctx context.Context, req *mcp.CallToolRequest, args PublishLongArticleArgs) (*mcp.CallToolResult, any, error) {
+			argsMap := map[string]interface{}{
+				"title":       args.Title,
+				"content":     args.Content,
+				"template":    args.Template,
+				"description": args.Description,
+				"images":      convertStringsToInterfaces(args.Images),
+				"schedule_at": args.ScheduleAt,
+				"visibility":  args.Visibility,
+				"products":    convertStringsToInterfaces(args.Products),
+			}
+			result := appServer.handlePublishLongArticle(ctx, argsMap)
+			return convertToMCPResult(result), nil, nil
+		}),
+	)
+
+	// 工具 6: 获取Feed列表
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "list_feeds",
@@ -268,7 +306,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 6: 搜索内容
+	// 工具 7: 搜索内容
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "search_feeds",
@@ -284,7 +322,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 7: 获取Feed详情
+	// 工具 8: 获取Feed详情
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "get_feed_detail",
@@ -329,7 +367,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 8: 获取用户主页
+	// 工具 9: 获取用户主页
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "user_profile",
@@ -350,7 +388,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 9: 发表评论
+	// 工具 10: 发表评论
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "post_comment_to_feed",
@@ -371,7 +409,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 10: 回复评论
+	// 工具 11: 回复评论
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "reply_comment_in_feed",
@@ -401,7 +439,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 11: 发布视频（仅本地文件）
+	// 工具 12: 发布视频（仅本地文件）
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "publish_with_video",
@@ -426,7 +464,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 12: 点赞笔记
+	// 工具 13: 点赞笔记
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "like_feed",
@@ -447,7 +485,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 13: 收藏笔记
+	// 工具 14: 收藏笔记
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "favorite_feed",
@@ -468,7 +506,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 14: 获取我的主页
+	// 工具 15: 获取我的主页
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "get_my_profile",
@@ -484,7 +522,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 15: 通知未读数
+	// 工具 16: 通知未读数
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "get_unread_count",
@@ -500,7 +538,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 16: 通知列表
+	// 工具 17: 通知列表
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "list_notifications",
@@ -516,7 +554,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 17: 回复通知里的评论
+	// 工具 18: 回复通知里的评论
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "reply_notification",
@@ -532,7 +570,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	// 工具 18: 给通知里的评论点赞
+	// 工具 19: 给通知里的评论点赞
 	mcp.AddTool(server,
 		&mcp.Tool{
 			Name:        "like_notification",
@@ -548,7 +586,7 @@ func registerTools(server *mcp.Server, appServer *AppServer) {
 		}),
 	)
 
-	logrus.Infof("Registered %d MCP tools", 18)
+	logrus.Infof("Registered %d MCP tools", 19)
 }
 
 // convertToMCPResult 将自定义的 MCPToolResult 转换为官方 SDK 的格式
