@@ -27,7 +27,11 @@ func ensureCreatorSession(page *rod.Page) error {
 
 	deadline := time.Now().Add(creatorSessionTimeout)
 	for time.Now().Before(deadline) {
-		time.Sleep(500 * time.Millisecond)
+		select {
+		case <-page.GetContext().Done():
+			return page.GetContext().Err()
+		case <-time.After(500 * time.Millisecond):
+		}
 		if hasCreatorSession(page) {
 			humanize.Delay(page.GetContext(), humanize.AfterNavigate)
 			return nil

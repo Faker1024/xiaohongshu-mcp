@@ -91,6 +91,40 @@ func TestNotificationToolsRegistered(t *testing.T) {
 	}
 }
 
+func TestPublishLongArticleToolRegistered(t *testing.T) {
+	router := setupRoutes(NewAppServer(NewXiaohongshuService(), ""))
+	server := httptest.NewServer(router)
+	defer server.Close()
+	req, err := http.NewRequest(http.MethodPost, server.URL+"/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}`))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	var result struct {
+		Result struct {
+			Tools []struct {
+				Name        string `json:"name"`
+				Description string `json:"description"`
+				InputSchema struct {
+					Required []string `json:"required"`
+				} `json:"inputSchema"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+	for _, tool := range result.Result.Tools {
+		if tool.Name != "publish_long_article" {
+			continue
+		}
+		assert.Contains(t, tool.Description, "模板")
+		assert.ElementsMatch(t, []string{"title", "content", "template"}, tool.InputSchema.Required)
+		return
+	}
+	t.Fatal("publish_long_article 应已注册")
+}
+
 // TestNotificationRoutesRegistered 固定通知的 HTTP 路由存在。
 //
 // 读路由表而不是发请求：这些 handler 会真的起浏览器访问小红书，

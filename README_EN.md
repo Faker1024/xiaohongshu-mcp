@@ -895,6 +895,13 @@ After successful connection, you can use the following MCP tools:
   - `is_original`: Declare as original content (optional), default is not declared
   - `visibility`: Visibility scope (optional), supports `公开可见` / public (default), `仅自己可见` / self-only, `仅互关好友可见` / mutual-followers-only
   - `products`: Product keyword list (optional), used to attach products for social commerce. Provide a product name or product ID; the system searches automatically and picks the first match. Requires the product feature to be enabled on your account. Example: [面膜, 防晒霜SPF50]
+- `publish_long_article` - Publish a long-form article to RedNote (required: title, content, template)
+  - `template`: Layout template name available in the long-article editor
+  - `description`: Publish-page description (optional, up to 1000 characters); required when the article body is longer than 1000 characters
+  - `images`: Optional image paths, supporting HTTP links or local paths
+  - `schedule_at`: Scheduled publish time (optional), ISO8601 format, supports 1 hour to 14 days ahead
+  - `visibility`: Visibility scope (optional), supports public, self-only, or mutual-followers-only
+  - `products`: Product keyword list (optional)
 - `publish_with_video` - Publish video content to RedNote (required: title, content, video)
   - `video`: Local video file absolute path (single file only)
   - `tags`: Topic tags list (optional), e.g. `["food", "travel", "lifestyle"]`
